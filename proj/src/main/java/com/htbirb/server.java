@@ -41,10 +41,17 @@ public class server {
         ServerSocket servo = new ServerSocket(port);
         System.out.format("Listening for connection on port %s", Integer.toString(PORT));
         while (true) {
-            try (Socket socket = servo.accept()) {
+
+            Socket socket = servo.accept();
+            try {
                 birbHandler(socket);  // handle client socket
+                                      //
+                } finally {
+                    if (socket != null && !socket.isClosed())  {
+                        socket.close();
+                    }
             }
-        servo.close();
+        //servo.close();
 
         }}
 
@@ -71,35 +78,48 @@ public class server {
          * imported output sample from a layout
          *
          */
-        String relativePath = "../../../webapp/layouts/index.html";
+        String relativePath = "./src/main/webapp/layouts/index.html";
         Path currentPath = Paths.get("").toAbsolutePath();
         Path absolutePath = currentPath.resolve(relativePath).normalize();
-        System.out.println("Absolute path: " + absolutePath);
+        System.out.println("\nAbsolute path: " + absolutePath);
 
 
-        //Path filePath = Paths.get(path);
-        Path filePath = absolutePath;
+        Path filePath = Paths.get(relativePath);
+        //Path filePath = absolutePath;
         //if exists, return verb 200 OK
         if (Files.exists(filePath)) {
             String contentType = guessMIMEType(filePath);
-            sendResp(socks, "200 OK", contentType, Files.readAllBytes(filePath));
+            String content = new String(Files.readAllBytes(filePath));
+            sendResp(socks, "200 OK", contentType, content);
         } else {
             // if does not, return verb 404 not found
             String contentType = "text/html";
             String notFoundContent = "<h1>404 not found :(</h1>";
-            sendResp(socks, "404 not found", contentType, notFoundContent.getBytes());
+            sendResp(socks, "404 not found", contentType, notFoundContent); //last type had .getBytes()
         }
-        socks.close();
+        //socks.close();
     }
 
-    private static void sendResp(Socket greensocks, String status, String contentType, byte[] content) throws IOException {
-        OutputStream outgs = greensocks.getOutputStream();
+    private static void sendResp(Socket greensocks, String status, String contentType, String content) throws IOException { // last type was byte[]
+        /*OutputStream outgs = greensocks.getOutputStream();
         outgs.write(("HTTP/1.1" + status + "\r\n").getBytes());
         outgs.write(("ContentType: " + contentType + "\r\n").getBytes());
         outgs.write("\r\n".getBytes());
         outgs.write(content);
         outgs.write("\r\n\r\n".getBytes());
-        outgs.flush();
+        outgs.flush();*/
+
+        // use PrintWriter instead of OutpuStreams. The later is for binary data.
+        PrintWriter out = new PrintWriter(greensocks.getOutputStream(), true);
+        // send http response header
+        out.println("HTTP/1.1 200 OK");
+        out.println("Content-Type: text/html");
+        out.println("\r\n"); // blank line separates header from body
+        // http response body
+        //out.println("<h1>Hello, this is a response header</h1>");
+        out.println(content.toString());
+        //greensocks.close();
+        //out.flush();
     }
 
 
