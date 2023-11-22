@@ -4,21 +4,17 @@ import com.htbirb.*;
 
 // network IO and BSD/Bekerley socket libraries
 import java.io.*;
+import java.net.HttpURLConnection;
 import java.net.ServerSocket;
 import java.net.Socket;
-// uri relative path
-import java.net.URL;
 
 // relative path libraries
-//
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-// collections (array) and utils
-//import java.util.ArrayList;
-//import java.util.List;
-//import java.util.Date;
+// handle endpoint routes
+import java.net.URL;
 
 /*
  * ISI task 1:
@@ -33,6 +29,7 @@ public class server {
     private static final Integer PORT = 8080;
 
     public static void main(String args[]) throws IOException {
+        // 1. calls function start
         start(PORT);
 
     }
@@ -44,9 +41,30 @@ public class server {
 
             Socket socket = servo.accept();
             try {
-                birbHandler(socket);  // handle client socket
-                                      //
-                } finally {
+                URL url = new URL("http://localhost:8080/");
+
+                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                connection.setRequestMethod("GET");
+
+                int rspCode = connection.getResponseCode();
+                System.out.println("Response code: " + rspCode);
+
+                BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                String inputLine;
+                StringBuilder response = new StringBuilder();
+
+                while ((inputLine = reader.readLine()) != null) {
+                    response.append(inputLine);
+                }
+                reader.close();
+
+                // 2. calls birbHandler, a socket handler
+                birbHandler(socket, url);  // handle client socket
+
+
+                } catch (IOException e){ //Exception handling
+                    e.printStackTrace();
+                } finally { // code that will be executed whether an exception occurs or not
                     if (socket != null && !socket.isClosed())  {
                         socket.close();
                     }
@@ -55,41 +73,29 @@ public class server {
 
         }}
 
-    private static void birbHandler(Socket socks) throws IOException {
-        //Date today = new Date();
+    private static void birbHandler(Socket socks, String url) throws IOException {
 
-        /* ======================
-         *
-         * hard-coded output sample
-         *
-        // use PrintWriter instead of OutpuStreams. The later is for binary data.
-        PrintWriter out = new PrintWriter(socks.getOutputStream(), true);
-        // send http response header
-        out.println("HTTP/1.1 200 OK");
-        out.println("Content-Type: text/html");
-        out.println("\r\n"); // blank line separates header from body
-        // http response body
-        out.println("<h1>Hello, this is a response header</h1>");
-        socks.close();*/
-
-
-        /* ======================
-         *
-         * imported output sample from a layout
-         *
-         */
         String relativePath = "./src/main/webapp/layouts/index.html";
         Path currentPath = Paths.get("").toAbsolutePath();
         Path absolutePath = currentPath.resolve(relativePath).normalize();
         System.out.println("\nAbsolute path: " + absolutePath);
 
+        String css_relativePath = "./src/main/webapp/assets/style.css";
+        Path   css_currentPath = Paths.get("").toAbsolutePath();
+        Path css_absolutePath = css_currentPath.resolve(css_relativePath).normalize();
+        System.out.println("\nCSS absolute path: " + css_absolutePath);
 
+
+        //ok
         Path filePath = Paths.get(relativePath);
-        //Path filePath = absolutePath;
+
         //if exists, return verb 200 OK
         if (Files.exists(filePath)) {
+            // check MIME, type of file
             String contentType = guessMIMEType(filePath);
             String content = new String(Files.readAllBytes(filePath));
+
+            // send response based on home
             sendResp(socks, "200 OK", contentType, content);
         } else {
             // if does not, return verb 404 not found
@@ -97,18 +103,9 @@ public class server {
             String notFoundContent = "<h1>404 not found :(</h1>";
             sendResp(socks, "404 not found", contentType, notFoundContent); //last type had .getBytes()
         }
-        //socks.close();
     }
 
     private static void sendResp(Socket greensocks, String status, String contentType, String content) throws IOException { // last type was byte[]
-        /*OutputStream outgs = greensocks.getOutputStream();
-        outgs.write(("HTTP/1.1" + status + "\r\n").getBytes());
-        outgs.write(("ContentType: " + contentType + "\r\n").getBytes());
-        outgs.write("\r\n".getBytes());
-        outgs.write(content);
-        outgs.write("\r\n\r\n".getBytes());
-        outgs.flush();*/
-
         // use PrintWriter instead of OutpuStreams. The later is for binary data.
         PrintWriter out = new PrintWriter(greensocks.getOutputStream(), true);
         // send http response header
@@ -123,18 +120,10 @@ public class server {
     }
 
 
-    private static Path getFilePath(String path) {
-        if ("/".equals(path)) {
-            path = "../../../webapp/layouts/index.html";
-        }
 
-        return Paths.get("./", path);
-        // edit
-    }
 
     private static String guessMIMEType(Path filePath) throws IOException {
         // somehow it seems prone to error with probeContentType, so lets infer
-        //return Files.probeContentType(filePath);
         //
         String fileName = filePath.toString();
         if (fileName.endsWith(".html") || fileName.endsWith(".htm")) {
