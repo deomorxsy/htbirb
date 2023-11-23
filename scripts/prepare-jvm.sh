@@ -2,19 +2,19 @@
 #
 distrocheck() {
     if [ -f /etc/os-release ]; then
-        distro=$(cat /etc/os-release | grep "ID=" -m 1)
-
-        elif [[ ${distro#*=} == "ubuntu" ]]; then
+        distrore=$(cat /etc/os-release | grep "ID=" -m 1)
+        elif [[ ${distrore#*=} == "ubuntu" ]]; then
             apt-get update
-            apt-get install openjdk-17
-        elif [[ ${distro#*=} == "arch" ]]; then
-            sudo pacman -Syu archlinux-keyring jdk-openjdk=20.0.2.u9-3
-        elif [[ ${distro#*=} == "fedora" || ${distro#*=} == "rhel"]]; then
-            yum update
-            yum install
-        elif [[ ${distro#*=} == "nixos" ]]; then
-            programs.neovim.
-        elif [[ ${distro#*=} == "alpine" ]]; then
+            apt-get install -y openjdk-17
+        elif [[ ${distrore#*=} == "arch" ]]; then
+            sudo pacman -Syu --noconfirm archlinux-keyring jdk-openjdk=20.0.2.u9-3
+        elif [[ ${distrore#*=} == "fedora" || ${distro#*=} == "rhel" ]]; then
+            dnf update
+            dnf install java-17-openjdk
+        elif [[ ${distrore#*=} == "nixos" ]]; then
+            nix-env --upgrade
+            nix-env --iA jdk17_headless
+        elif [[ ${distrore#*=} == "alpine" ]]; then
             apk -U upgrade
             apk add openjdk-17
         else
